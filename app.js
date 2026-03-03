@@ -45,8 +45,8 @@ renderBtn.addEventListener("click", () => {
 function buildConfig(type, { month, city, metric }) {
   if (type === "bar") return barByCity(month, metric);
   if (type === "line") return lineOverTime(city, ["avgTempC", "maxTempC"]);
-  if (type === "scatter") return scatterSunshineVsavgTemp(city);
-  if (type === "doughnut") return doughnutMemberVsCasual(month, city);
+  if (type === "scatter") return scatterHumidityVsavgTemp(city);
+  if (type === "doughnut") return doughnutSunshineVsNight(month, city);
   if (type === "radar") return radarCompareCity(month);
   return barByCity(month, metric);
 }
@@ -107,27 +107,49 @@ function lineOverTime(city, metrics) {
   };
 }
 
-// SCATTER — relationship between avg temperature and sunshine hours
-function scatterSunshineVsavgTemp(city) {
+// SCATTER — relationship between avg temperature and humidity
+function scatterHumidityVsavgTemp(city) {
   const rows = chartData.filter(r => r.city === city);
 
-  const points = rows.map(r => ({ x: r.avgTempC, y: r.sunshineHours }));
+  const points = rows.map(r => ({ x: r.avgTempC, y: r.humidityPct }));
 
   return {
     type: "scatter",
     data: {
       datasets: [{
-        label: `Sunshine vs Avg Temp (${city})`,
+        label: `Humidity vs Avg Temp (${city})`,
         data: points
       }]
     },
     options: {
       plugins: {
-        title: { display: true, text: `Does avg temperature affect sunshine hours? (${city})` }
+        title: { display: true, text: `Does avg temperature affect humidity? (${city})` }
       },
       scales: {
         x: { title: { display: true, text: "Average Temperature (C)" } },
-        y: { title: { display: true, text: "Sunshine Hours" } }
+        y: { title: { display: true, text: "Humidity" } }
+      }
+    }
+  };
+}
+
+// DOUGHNUT — sunshine hours vs night hours share for one month + city
+function doughnutSunshineVsNight(month, city) {
+  const row = chartData.find(r => r.month === month && r.city === city);
+
+  const sunshine = Math.round(row.sunshineHours/10);
+  //On the actual chart, the percent values may not add up to 100%. This is because I don't know the total amount of hours counted each month, so I just used the average number of hours each month in the calculation to determine the amount of Night hours, which is 720 hours.
+  const night = (720 - sunshine)/10;
+
+  return {
+    type: "doughnut",
+    data: {
+      labels: ["Sunshine Hours (%)", "Night Hours (%)"],
+      datasets: [{ label: "Hours Distribution", data: [sunshine, night] }]
+    },
+    options: {
+      plugins: {
+        title: { display: true, text: `Rider mix: ${city} (${month})` }
       }
     }
   };
